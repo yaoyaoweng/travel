@@ -1108,7 +1108,7 @@ V.day = (n) => { const html = _dayWC(n), saved = Sync.get("meta", "itin");
 async function applyNewItinWC() { if (await ask("套用新版行程？（你自己改過的行程會被取代）", "套用")) { saveItin(defaultDays()); toast("已套用新版行程"); render(true); } }
 // 推薦指南：一間店可以同時出現在多個分類
 const _guideWC = V.guide;
-function render(keepScroll) {
+var render = function (keepScroll) {
   applyCustomPlaces();
   const [name = "", arg] = (location.hash || "").replace(/^#\/?/, "").split(/[\/-]/);
   const view = V[name] || V.home;
@@ -1116,7 +1116,31 @@ function render(keepScroll) {
   $("#app").innerHTML = view(arg ? decodeURIComponent(arg) : undefined);
   window.scrollTo(0, keepScroll ? y : 0);
   if (keepId) { const el = document.getElementById(keepId); if (el) { if (keepVal != null && el.value === "") el.value = keepVal; el.focus(); } } // 打字時收到新訊息不會被清掉
+};
+/* ---------- 底部選單（水彩版） ---------- */
+const NAVW = [["home", "home", "首頁", ["home", ""]], ["day", "cal", "行程", ["day", "map", "summary", "place"]], ["chat", "chat", "聊天", ["chat"]], ["budget", "wallet", "記帳", ["budget"]], ["more", "menu", "更多", []]];
+function navWC(name) {
+  const cur = (NAVW.find((t) => t[3].includes(name)) || NAVW[4])[0], n = unread();
+  return `<nav class="wnav">${NAVW.map(([k, i, z]) => k === "more"
+    ? `<button class="${cur === "more" ? "on" : ""}" onclick="moreSheet()">${ic(i)}<span>${z}</span></button>`
+    : `<a class="${k === cur ? "on" : ""} ${k === "chat" ? "mid" : ""}" href="#${k}"><i>${ic(i)}${k === "chat" && n ? `<em>${n}</em>` : ""}</i><span>${z}</span></a>`).join("")}</nav>`;
 }
+function moreSheet() {
+  const items = [["#map", "map", "路線地圖", "#dfeaf3", "#4f7ea8"], ["#checklist", "check", "出發準備", "#f5ecc9", "#a07b16"], ["#booking", "ticket", "預訂票券", "#f8e0e2", "#c2566b"],
+    ["#outfit", "shirt", "服裝穿搭", "#ece4f4", "#7a5aa6"], ["#weather", "weather", "天氣預報", "#e0eef2", "#3f8aa0"], ["#guide", "food", "推薦指南", "#f9e3d3", "#c8692f"],
+    ["#album", "album", "旅行相冊", "#f6e1ea", "#b0507a"], ["#summary", "route", "行程總覽", "#e6ecd2", "#5f7431"], ["#setup", "settings", "設定同步", "#efe9dc", "#7c7a66"]];
+  sheet(`<div class="msh"><img src="img/temple.webp" alt=""><h3>更多功能</h3></div>
+    <div class="grid9 sm">${items.map(([h, i, z, bg, c]) => `<a class="tile" href="${h}" style="--tb:${bg};--tc:${c}"><span class="ti">${ic(i)}</span><b>${z}</b></a>`).join("")}</div>`,
+    (el, close) => el.querySelectorAll("a").forEach((a) => a.addEventListener("click", close)));
+}
+// 有底部選單後，首頁的浮動聊天按鈕就不需要了
+V.home = _homeChat;
+const _renderWC = render;
+render = function (keepScroll) {
+  _renderWC(keepScroll);
+  const name = (location.hash || "").replace(/^#\/?/, "").split(/[\/-]/)[0];
+  $("#app").insertAdjacentHTML("beforeend", navWC(V[name] ? name : "home"));
+};
 window.addEventListener("hashchange", () => { document.querySelectorAll(".mask,.full").forEach((e) => e.remove()); render(false); });
 render(false);
 Sync.run(); loadWeather(); refreshRate();

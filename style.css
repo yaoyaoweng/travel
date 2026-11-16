@@ -744,3 +744,21 @@ details.plan{margin-top:14px;padding:4px 6px}details.plan summary{padding:10px 8
 .howset{margin-top:12px;font-size:13.5px;line-height:1.7}.howset summary{color:var(--green-d);font-weight:700;cursor:pointer}
 
 .cm.me .cloc small{opacity:.95;color:#fff}
+
+/* ===== 底部選單（水彩版） ===== */
+.wnav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:480px;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);align-items:end;
+  padding:6px 6px calc(var(--safe-b) + 6px);background:linear-gradient(180deg,#fffaf0f0,#fbf3e3f8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-top:1.5px solid #e9d7a8;box-shadow:0 -4px 16px rgba(120,95,40,.10);border-radius:22px 22px 0 0}
+.wnav a,.wnav button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;color:#8b856e;font-family:var(--serif);font-weight:700;padding:4px 0}
+.wnav i{position:relative;display:grid;place-items:center;width:42px;height:32px;border-radius:16px;font-style:normal}
+.wnav svg{font-size:22px}
+.wnav .on{color:var(--green-d)}.wnav .on i{background:var(--green-l);color:var(--green)}
+.wnav button.on svg{color:var(--green)}
+.wnav a.mid i{width:56px;height:56px;margin-top:-26px;border-radius:50%;background:linear-gradient(160deg,#d6697d,#c2566b);color:#fff;box-shadow:0 6px 14px #c2566b55;border:3px solid #fffaf0}
+.wnav a.mid i svg{font-size:26px}.wnav a.mid.on i{background:linear-gradient(160deg,#c45a6e,#a8445a)}
+.wnav em{position:absolute;top:-4px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#fff;color:var(--pink);font-style:normal;font-weight:800;font-size:11px;display:grid;place-items:center;box-shadow:0 1px 4px #0003;font-family:sans-serif}
+#app:has(.wnav) .page{padding-bottom:calc(var(--safe-b) + 100px)}
+#app:has(.wnav) .fab{bottom:calc(var(--safe-b) + 90px)}
+#app:has(.wnav) .hdr .homebtn,#app:has(.wnav) .rhdr .homebtn,#app:has(.wnav) .ohero .homebtn,#app:has(.wnav) .dhero .homebtn{display:none}
+.msh{position:relative;display:flex;align-items:flex-end;min-height:56px;margin-bottom:10px}.msh img{position:absolute;right:-18px;top:-18px;width:120px;opacity:.9}.msh h3{margin:0!important}
+.grid9.sm{margin-top:0}.grid9.sm .tile{aspect-ratio:1/0.85}
