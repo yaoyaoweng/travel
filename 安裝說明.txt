@@ -1,0 +1,33 @@
+清邁旅行 App — 安裝與同步說明
+© 2026 YaoyaoWeng. All rights reserved.
+本 App 的設計、程式碼與內容版權歸 YaoyaoWeng 所有，未經授權請勿複製、轉載或商業使用。
+================================
+
+【一、上傳到 GitHub Pages】
+1. 登入 github.com → 右上「＋」→ New repository
+2. 名稱填 chiangmai-trip → 選 Public → Create repository
+3. 點「uploading an existing file」，把這個資料夾「裡面」的所有檔案和資料夾拖進去（不是拖整個資料夾）
+4. 按 Commit changes，確認首頁直接看得到 index.html
+5. Settings → Pages → Branch 選 main、/(root) → Save
+6. 等 1～3 分鐘，網址是 https://你的帳號.github.io/chiangmai-trip/
+
+【二、安裝到手機】
+iPhone：用 Safari 開網址 → 分享 → 加入主畫面
+Android：用 Chrome 開網址 → 右上選單 → 安裝應用程式
+※ iPhone 要先「加入主畫面」，再從桌面的 App 裡做設定（Safari 和桌面 App 的資料是分開的）。
+
+【三、第一次打開要做的設定】（首頁左上 ☰）
+1. 填首頁名字、兩位旅伴的名字，選「這支手機是誰的」→ 儲存
+2. 開啟同步（只要一個人做）：「方法二」填入 Firebase 的 projectId、apiKey → 開始同步
+3. 按「複製同步碼」用 LINE 傳給旅伴；旅伴在她的 App 設定「方法一」貼上 → 加入同步
+
+【會同步給旅伴的】行程修改、預訂票券、出發準備打勾、打包清單、共同分帳、自己加的推薦、共享相簿連結
+【只存在自己手機的】個人花費、票券 QR 截圖、行程備註
+
+【四、更新 App】
+同一個 repository → Add file → Upload files → 拖入新版檔案 → Commit changes
+等 1～2 分鐘，手機 App 關掉重開兩次就會更新。
+
+【注意】
+- Repository 是公開的：預設行程、飯店名稱和日期任何人都看得到。護照號碼、訂位代號請不要寫進程式，QR code 用 App 裡的票券功能存在手機就好。
+- Firebase 的 apiKey、同步碼不要貼到公開的地方。

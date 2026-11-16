@@ -1,0 +1,15 @@
+{
+  "name": "Roamie・清邁閨蜜旅行",
+  "short_name": "Roamie",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fef2e2",
+  "theme_color": "#f6efdf",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
