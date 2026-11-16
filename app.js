@@ -216,7 +216,7 @@ function defaultDays() {
   return JSON.parse(JSON.stringify(TRIP.days)).map((d) => ({ ...d, stops: d.stops.map((s, i) => ({ id: `s${d.d}_${i}`, ...s })) }));
 }
 function itin() { const r = Sync.get("meta", "itin"); return r && Array.isArray(r.days) ? r.days : defaultDays(); }
-function saveItin(days) { Sync.put("meta", { id: "itin", days }); }
+function saveItin(days) { Sync.put("meta", { id: "itin", days, base: TRIP.itinVersion }); }
 function dayOf(n, days = itin()) { return days.find((d) => d.d === +n) || days[0]; }
 function timeText(s) { return s.t ? `${s.approx ? "約 " : ""}${s.t}${s.end ? "–" + s.end : ""}` : ""; }
 function curDayN() { const p = tripPhase(); return p.phase === "during" && p.day ? p.day.d : null; }
@@ -241,7 +241,7 @@ function bookings() {
   const ov = Sync.docs("bookings"), ids = new Set(TRIP.bookings.map((b) => b.id));
   const out = TRIP.bookings.map((b) => (ov[b.id] ? { ...b, ...ov[b.id] } : b)).concat(Object.values(ov).filter((r) => !ids.has(r.id))).filter((b) => !b.deleted);
   return out.map((b) => ({ ...b, img: TRIP.bookingImg[b.id] || (TRIP.bookingTypes[b.type] || [])[2] || "img/b_car.jpg", lines: bkLines(b) }))
-    .sort((a, b) => ((a.date || a.checkin || "9") + (a.t || "")).localeCompare((b.date || b.checkin || "9") + (b.t || "")));
+    .sort((a, b) => ((a.date || a.checkin || "9") + (a.t || (a.type === "stay" ? "23:59" : "12:00"))).localeCompare((b.date || b.checkin || "9") + (b.t || (b.type === "stay" ? "23:59" : "12:00"))));
 }
 function choose(msg, opts) {
   return new Promise((res) => {
@@ -479,54 +479,51 @@ function addPlaceToDay(pid) {
 }
 
 /* ---------- 路線地圖（每天依行程自動畫） ---------- */
-function routeArt(d) {
-  const st = d.stops, n = st.length; if (!n) return `<div class="card empty">這天還沒有行程</div>`;
-  const W = 360, G = 112, top = 92, H = top + (n - 1) * G + 120;
-  const pts = st.map((s, i) => [i % 2 ? 222 : 140, top + i * G]);
-  // 手繪感路徑：每段加一點彎曲
-  let path = `M${pts[0][0]},${pts[0][1]}`;
-  for (let i = 1; i < n; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], mx = (x0 + x1) / 2 + (i % 2 ? 18 : -18), my = (y0 + y1) / 2;
-    path += ` Q${x0 + (i % 2 ? -6 : 6)},${y0 + G * .25} ${mx},${my} T${x1},${y1}`; }
-  // 從 D3 手繪圖取下來的山、樹、佛塔，依高度重複擺放
-  const sp = (k, x, y, w) => `<image href="img/sp_${k}.webp" x="${x}" y="${y}" width="${w}" preserveAspectRatio="xMidYMid meet"/>`;
-  let bg = sp("mtn_top", -10, -6, 190) + sp("trees_a", 250, 4, 100);
-  const sets = [["pagoda", -14, 0, 120], ["tree_g", 290, 40, 70], ["mtn_mid", 250, 120, 130], ["trees_c", 0, 180, 80], ["tree_d", 170, 70, 50], ["tree_b", 290, 230, 80]];
-  for (let y = 70, k = 0; y < H - 160; y += 300, k++) sets.forEach(([s, x, dy, w], j) => { if ((j + k) % 2 === 0 || dy < 150) bg += sp(s, k % 2 ? W - x - w : x, y + dy, w); });
-  bg += sp("mtn_br", 150, H - 120, 220) + sp("trees_e", 150, H - 66, 100) + sp("trees_f", 240, H - 52, 120) + sp("palm", 14, H - 66, 50);
-  const pin = (x, y) => `<g transform="translate(${x},${y - 34})"><path d="M0,34 C-5,21 -15,15 -15,3 A15,15 0 1 1 15,3 C15,15 5,21 0,34Z" fill="#e2554a" stroke="#fff" stroke-width="2"/><circle cy="2" r="5.5" fill="#fff"/></g>`;
-  const cards = st.map((s, i) => {
-    const [, y] = pts[i], img = artImg(s), ty = T(s.type), left = i % 2 === 0;
-    return `<button class="hcard ${left ? "l" : "r"} ${s.type === "massage" || s.hi ? "pk" : ""}" style="top:${((y - 50) / H) * 100}%" onclick="openStop(${d.d},'${s.id}')">
-      ${img ? `<img src="${img}" alt="">` : `<span class="mico" style="--c:${ty.color};--b:${ty.bg}">${ic(ty.icon)}</span>`}
-      <b>${esc(s.title.replace(/^.*→\s*/, "").replace(/（.*）/, ""))}</b>${s.t ? `<small>${timeText(s)}</small>` : ""}</button>`;
-  }).join("");
-  const first = st[0], last = st[n - 1];
-  return `<div class="rmap3"><svg viewBox="0 0 ${W} ${H}">
-    <defs><filter id="ink"><feTurbulence type="fractalNoise" baseFrequency=".09" numOctaves="1" seed="2"/><feDisplacementMap in="SourceGraphic" scale="2.6"/></filter></defs>
-    ${bg}
-    <path d="${path}" fill="none" stroke="#2f5a1f" stroke-width="4.2" stroke-linecap="round" filter="url(#ink)"/>
-    ${pin(pts[0][0], pts[0][1])}${n > 1 ? pin(pts[n - 1][0], pts[n - 1][1]) : ""}
-    <text x="96" y="${H - 30}" text-anchor="middle" class="city">清邁</text><text x="96" y="${H - 15}" text-anchor="middle" class="city-en">Chiang Mai</text></svg>${cards}</div>`;
+function stopArt(s) {
+  const A = TRIP.routeArt, txt = s.title + " " + (s.sub || "");
+  const k = (s.place && A.place[s.place]) || (A.words.find(([re]) => re.test(s.title)) || [])[1] || (A.words.find(([re]) => re.test(txt)) || [])[1] || A.type[s.type];
+  return k ? `img/rt/${k}.webp` : null;
 }
+function navTarget(s) { const p = s.place && TRIP.places[s.place]; return p ? p.q || p.name : null; }
 V.map = (n) => {
   const days = itin(); n = +n || curDayN() || LS.get("lastDay", 1);
-  const d = dayOf(n, days), r = TRIP.routes[d.d];
-  const located = d.stops.filter((s) => s.place && TRIP.places[s.place]).map((s) => ({ s, p: TRIP.places[s.place] }));
-  const legs = located.slice(1).map((x, i) => ({ a: located[i], b: x }));
-  let body = r ? `<div class="mapwrap"><img class="mapimg" src="${r.img}" alt="路線圖"></div>` : routeArt(d);
-  if (located.length >= 2) {
-    const nav = r ? r.nav : { origin: located[0].p.q || located[0].p.name, destination: located.at(-1).p.q || located.at(-1).p.name, waypoints: located.slice(1, -1).map((x) => x.p.q || x.p.name) };
-    body += `<div class="btnrow"><a class="btn" target="_blank" rel="noopener" href="${mapsDir(nav.origin, nav.destination, nav.waypoints)}">${ic("nav")} 用 Google Maps 開整天路線</a></div>`;
-  }
-  if (legs.length) body += `<div class="sec">${ic("route")} 分段導航</div><div class="card plist">${legs.map(({ a, b }) => `
-      <a class="it" target="_blank" rel="noopener" href="${b.p.url ? b.p.url : mapsDir(a.p.q || a.p.name, b.p.q || b.p.name)}"><span class="leg"><small>${esc(a.p.name)}</small>${ic("down")}<b>${esc(b.p.name)}</b></span>${b.s.t ? `<span class="small muted">${b.s.t}</span>` : ""}<span class="round-ic">${ic("nav")}</span></a>`).join("")}</div>`;
-  else if (located.length === 1) body += `<div class="btnrow"><a class="btn" target="_blank" rel="noopener" href="${placeLink(located[0].p)}">${ic("nav")} 導航到 ${esc(located[0].p.name)}</a></div>`;
-  if (r) body += `<div class="card info"><h4>${ic("car")} ${r.title}</h4>${r.info.map(([k, v]) => `<div class="kv">${ic("ok")}<b>${k}</b>${esc(v)}</div>`).join("")}</div>`;
-  body += `${r ? "" : `<p class="note">路線圖會跟著行程自動更新，點圖上的行程可以看詳細、導航或記帳。</p>`}`;
-  return `<div class="page">${hdr("map", `D${d.d} 路線地圖`, "Route Map")}
-    <div class="daytabs">${days.map((x) => `<a class="daytab ${x.d === d.d ? "on" : ""}" href="#map-${x.d}"><b>D${x.d}</b><span>${md(x.date)}</span></a>`).join("")}</div>
-    <div class="dtitle">${ic(d.icon || "cal")}<h2>${esc(d.title)}</h2></div>${body}</div>`;
+  const d = dayOf(n, days), th = TRIP.routeTheme[d.d] || { t: d.title, en: "", c: "#5f7431" }, r = TRIP.routes[d.d];
+  const located = d.stops.filter((s) => navTarget(s));
+  const legs = located.slice(1).map((s, i) => [located[i], s]);
+  const live = liveStatus(d);
+  const tag = (s) => { const b = s.booking && bookings().find((x) => x.id === s.booking);
+    return [s.sub ? `<span class="rtag">${esc(s.sub)}</span>` : "", b && !bkDone(b.id) ? `<span class="rtag w">預訂待確認</span>` : "", live[s.id] ? `<span class="rtag live">${live[s.id] === "now" ? "進行中" : "下一站"}</span>` : ""].join(""); };
+  const rows = d.stops.map((s, i) => { const art = stopArt(s), nav = navTarget(s);
+    return `<div class="rrow ${s.type === "massage" || s.hi ? "pk" : ""} ${i === d.stops.length - 1 ? "last" : ""}">
+      <button class="rnum" onclick="openStop(${d.d},'${s.id}')">${String(i + 1).padStart(2, "0")}</button>
+      <button class="rtx" onclick="openStop(${d.d},'${s.id}')"><b>${esc(s.title.replace(/^.*→\s*/, ""))}</b>${s.t ? `<span class="rt">${timeText(s)}</span>` : ""}${tag(s)}</button>
+      ${art ? `<img class="rart" src="${art}" alt="" onclick="openStop(${d.d},'${s.id}')">` : `<span></span>`}
+      ${nav ? `<a class="rnav" target="_blank" rel="noopener" href="${placeLink(TRIP.places[s.place])}" title="導航">${ic("nav")}</a>` : ""}
+    </div>`; }).join("");
+  const whole = located.length >= 2 ? (r ? mapsDir(r.nav.origin, r.nav.destination, r.nav.waypoints) : mapsDir(navTarget(located[0]), navTarget(located.at(-1)), located.slice(1, -1).map(navTarget)))
+    : located.length === 1 ? placeLink(TRIP.places[located[0].place]) : null;
+  const hasFlight = d.stops.some((s) => s.type === "flight");
+  return `<div class="page rpage" style="--th:${th.c}">
+    <div class="rhdr"><button class="back" onclick="goBack()">${ic("back")}</button><div><h1>每日路線</h1><small>DAILY ROUTE</small></div>
+      <img class="rfl" src="img/rt/rflower.webp" alt=""><a class="homebtn" href="#home">${ic("home")}</a></div>
+    <div class="rtabs">${days.map((x) => `<a class="${x.d === d.d ? "on" : ""}" style="--tc:${(TRIP.routeTheme[x.d] || {}).c || "#5f7431"}" href="#map-${x.d}">D${x.d}</a>`).join("")}</div>
+    <div class="rban"><img class="l" src="img/rt/bn${d.d}l.webp" alt="" onerror="this.remove()"><img class="r" src="img/rt/bn${d.d}r.webp" alt="" onerror="this.remove()">
+      <div class="rd">D${d.d}・${md(d.date)}</div><h2>${esc(th.t)}</h2><div class="ren">${esc(th.en)}</div><div class="rorn">〰</div></div>
+    ${th.pill ? `<div class="rpill">${ic(th.pill[0])} ${esc(th.pill[1])}</div>` : ""}
+    <div class="rlist">${rows || `<div class="empty">這天還沒有行程</div>`}
+      <div class="rfoot"><img src="img/rt/rflower.webp" alt="">—— 行程示意・非實際比例 ——</div></div>
+    ${legs.length ? `<button class="rleg" onclick="showLegs(${d.d})">${ic("pin")}<span><b>分段導航</b><small>${esc(TRIP.places[legs[0][0].place].name)} → ${esc(TRIP.places[legs[0][1].place].name)}${legs.length > 1 ? ` 等 ${legs.length} 段` : ""}</small></span>${ic("right")}</button>` : ""}
+    ${hasFlight ? `<div class="rnote">${ic("plane")} 航班時間以航空公司公告為準</div>` : ""}
+    ${whole ? `<a class="rgo" target="_blank" rel="noopener" href="${whole}">${ic("pin")} 開啟 Google Maps</a>` : ""}
+    ${r ? `<div class="card info"><h4>${ic("car")} ${r.title}</h4>${r.info.map(([k, v]) => `<div class="kv">${ic("ok")}<b>${k}</b>${esc(v)}</div>`).join("")}</div>` : ""}
+    <a class="redit" href="#day-${d.d}">${ic("edit")} 編輯這天的行程（新增・刪除・調整時間）</a>
+  </div>`;
 };
+function showLegs(n) {
+  const d = dayOf(n), located = d.stops.filter((s) => navTarget(s));
+  sheet(`<h3>D${n} 分段導航</h3><div class="card plist">${located.slice(1).map((s, i) => { const a = located[i];
+    return `<a class="it" target="_blank" rel="noopener" href="${TRIP.places[s.place].url || mapsDir(navTarget(a), navTarget(s))}"><span class="leg"><small>${esc(TRIP.places[a.place].name)}</small>${ic("down")}<b>${esc(TRIP.places[s.place].name)}</b></span>${s.t ? `<span class="small muted">${s.t}</span>` : ""}<span class="round-ic">${ic("nav")}</span></a>`; }).join("")}</div>`);
+}
 
 /* ---------- 景點／店家介紹 ---------- */
 V.place = (id) => {
@@ -704,7 +701,7 @@ function applyCustomPlaces() {
 const GUIDE_TYPE = { food: "food", cafe: "cafe", shop: "shop", massage: "massage", spot: "spot" };
 V.guide = (tab) => {
   tab = tab || "food";
-  const list = Object.entries(TRIP.places).filter(([, p]) => p.guide === tab).sort((a, b) => (a[1].custom ? 1 : 0) - (b[1].custom ? 1 : 0));
+  const list = Object.entries(TRIP.places).filter(([, p]) => p.guide === tab || (p.also || []).includes(tab)).sort((a, b) => (a[1].custom ? 1 : 0) - (b[1].custom ? 1 : 0));
   return `<div class="page">${hdr("food", "推薦指南", "Travel Guide")}
     <div class="tabs">${TRIP.guideTabs.map(([k, z, i]) => `<a class="tab ${k === tab ? "on" : ""}" href="#guide-${k}">${ic(i)} ${z}</a>`).join("")}</div>
     ${list.map(([id, p]) => { const ty = T(p.type), uses = placeUses(id); return `<div class="card rowc" onclick="location.hash='#place-${id}'">
@@ -1038,15 +1035,87 @@ async function resetAll() {
   indexedDB.deleteDatabase(TRIP.id); location.hash = "#home"; location.reload();
 }
 
-/* ---------- 路由 ---------- */
-const APP_VERSION = "2.0.0";
+/* ---------- 旅伴對話框＋我在這裡＋旅伴在哪 ---------- */
+if (!Sync.cols.includes("msgs")) Sync.cols.push("msgs");
+const QUICK = ["我到了 👋", "等我 5 分鐘", "你在哪？", "我先去排隊", "要不要喝咖啡 ☕", "我先墊了，記帳囉 💰"];
+function msgs() { return Sync.list("msgs").sort((a, b) => a.ts - b.ts); }
+function unread() { const last = LS.get("chatRead", 0), me = myIdx(); return msgs().filter((m) => m.from !== me && m.ts > last).length; }
+function lastLoc(who) { return msgs().filter((m) => m.loc && m.from === who).pop(); }
+function ago(ts) { const s = (Date.now() - ts) / 1000; return s < 60 ? "剛剛" : s < 3600 ? `${Math.floor(s / 60)} 分鐘前` : s < 86400 ? `${Math.floor(s / 3600)} 小時前` : `${md(new Date(ts).toISOString().slice(0, 10))}`; }
+function hm(ts) { const d = new Date(ts); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; }
+const mapsAt = (lat, lng) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+V.chat = () => {
+  LS.set("chatRead", Date.now());
+  const P = people(), me = myIdx(), other = 1 - me, list = msgs(), synced = !!Sync.cfg();
+  const ol = lastLoc(other);
+  let lastDay = "";
+  const bubbles = list.map((m) => {
+    const day = new Date(m.ts).toISOString().slice(0, 10), mine = m.from === me;
+    const sep = day !== lastDay ? `<div class="cday">${md(day)}（${wk(day)}）</div>` : ""; lastDay = day;
+    const body = m.loc ? `<a class="cloc" href="${mapsAt(m.loc[0], m.loc[1])}" target="_blank" rel="noopener"><img src="img/rt/rflower.webp" alt=""><span><b>${ic("pin")} 我在這裡</b><small>點一下用 Google 地圖導航${m.loc[2] ? `・誤差約 ${Math.round(m.loc[2])} 公尺` : ""}</small></span></a>` : esc(m.text).replace(/\n/g, "<br>");
+    return `${sep}<div class="cm ${mine ? "me" : ""}">${mine ? "" : `<span class="cav">${esc(P[m.from][0] || "?")}</span>`}<div><div class="cb ${m.loc ? "loc" : ""}">${body}</div><small>${mine ? "" : esc(P[m.from]) + "・"}${hm(m.ts)}${m.pending ? "・傳送中" : ""}</small></div></div>`;
+  }).join("");
+  setTimeout(() => { const b = $("#cbody"); if (b) b.scrollTop = b.scrollHeight; }, 0);
+  return `<div class="page chatp">${hdr("chat", "旅伴聊天", "Travel Chat")}
+    <div class="cbar"><button class="btn ghost sm" onclick="shareHere()">${ic("pin")} 我在這裡</button><button class="btn ghost sm" onclick="whereBuddy()">${ic("find")} ${esc(P[other])} 在哪？</button></div>
+    ${ol ? `<a class="card clast" href="${mapsAt(ol.loc[0], ol.loc[1])}" target="_blank" rel="noopener">${ic("pin")}<span>${esc(P[other])} 最後分享的位置・${ago(ol.ts)}</span>${ic("nav")}</a>` : ""}
+    ${synced ? "" : `<div class="card warn">${ic("info")} 還沒開啟同步，訊息只會存在這支手機。到「設定」開啟兩支手機同步後，閨蜜才收得到。</div>`}
+    <div class="card cbody" id="cbody">${bubbles || `<div class="cempty"><img src="img/elephant2.webp" alt=""><p>還沒有訊息<br>跟 ${esc(P[other])} 打聲招呼吧 ♡</p></div>`}</div>
+    <div class="cquick">${QUICK.map((q) => `<button onclick="sendMsg(${JSON.stringify(q).replace(/"/g, "&quot;")})">${esc(q)}</button>`).join("")}</div>
+    <form class="cin" onsubmit="event.preventDefault();sendMsg($('#cinput').value)"><input id="cinput" placeholder="輸入訊息…" autocomplete="off" enterkeyhint="send"><button class="btn" aria-label="送出">${ic("send")}</button></form>
+    <p class="note">App 開著時幾秒內就會收到；App 關掉時不會跳通知。只有你們兩支手機看得到（開啟同步後）。</p>
+    ${syncBar()}</div>`;
+};
+function sendMsg(text, loc) {
+  text = (text || "").trim(); if (!text && !loc) return;
+  Sync.put("msgs", { id: uid("m"), from: myIdx(), text, loc, ts: Date.now() });
+  const i = $("#cinput"); if (i) i.value = "";
+  render(true); Sync.run();
+}
+function shareHere() {
+  if (!navigator.geolocation) return toast("這支手機不支援定位");
+  toast("取得位置中…");
+  navigator.geolocation.getCurrentPosition(
+    (p) => sendMsg("", [+p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6), p.coords.accuracy]),
+    () => toast("無法取得位置，請在手機設定允許 Roamie／瀏覽器使用定位"),
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+}
+function whereBuddy() {
+  const P = people(), other = 1 - myIdx(), ol = lastLoc(other);
+  sheet(`<h3>${esc(P[other])} 在哪？</h3>
+    ${ol ? `<a class="card clast" href="${mapsAt(ol.loc[0], ol.loc[1])}" target="_blank" rel="noopener">${ic("pin")}<span>在 Roamie 最後分享的位置・${ago(ol.ts)}</span>${ic("nav")}</a>` : `<p class="small muted">${esc(P[other])} 還沒在 Roamie 分享過位置。</p>`}
+    <p class="small" style="line-height:1.7;margin:14px 0 6px"><b>要 24 小時即時位置</b>，請用手機內建的位置分享（App 關掉也會持續更新），出發前兩個人先設定好一次：</p>
+    <div class="choices">
+      <a class="btn ghost" href="findmy://" onclick="setTimeout(()=>{location.href='https://www.icloud.com/find'},1200)">${ic("find")} 打開 iPhone「尋找」</a>
+      <a class="btn ghost" href="https://www.google.com/maps" target="_blank" rel="noopener">${ic("map")} 打開 Google 地圖</a>
+    </div>
+    <details class="howset"><summary>第一次怎麼設定？</summary>
+      <p><b>iPhone「尋找」</b>：尋找 →「聯絡人」→「＋」→ 選旅伴 →「傳送」→「無限期分享」。對方也做一次。</p>
+      <p><b>Google 地圖</b>：點右上頭像 →「位置資訊分享」→「新增分享對象」→ 選旅伴 →「直到你關閉此功能」。</p></details>`);
+}
+// 首頁浮動聊天按鈕（有未讀數）
+const _homeChat = V.home;
+V.home = () => { const n = unread(); return _homeChat() + `<a class="cfab" href="#chat" aria-label="旅伴聊天">${ic("chat")}${n ? `<em>${n}</em>` : ""}</a>`; };
+// 聊天頁時加快同步
+setInterval(() => { if (!document.hidden && location.hash === "#chat" && Sync.cfg()) Sync.run(); }, 4000);
+/* ---------- 路由（水彩版） ---------- */
+const APP_VERSION = "5.0.0";
+// 行程資料有新版本時，在每日行程頁提示
+const _dayWC = V.day;
+V.day = (n) => { const html = _dayWC(n), saved = Sync.get("meta", "itin");
+  return saved && saved.base !== TRIP.itinVersion ? html.replace('<div class="daytabs">', `<div class="card warn" style="display:flex;gap:8px;align-items:center;margin-bottom:10px">${ic("info")}<span style="flex:1">行程資料有新版本（航班、D4／D5 細節更新），要套用嗎？你自己改過的行程會被取代。</span><button class="btn sm" onclick="applyNewItinWC()">套用</button></div><div class="daytabs">`) : html; };
+async function applyNewItinWC() { if (await ask("套用新版行程？（你自己改過的行程會被取代）", "套用")) { saveItin(defaultDays()); toast("已套用新版行程"); render(true); } }
+// 推薦指南：一間店可以同時出現在多個分類
+const _guideWC = V.guide;
 function render(keepScroll) {
   applyCustomPlaces();
   const [name = "", arg] = (location.hash || "").replace(/^#\/?/, "").split(/[\/-]/);
   const view = V[name] || V.home;
-  const y = window.scrollY;
+  const y = window.scrollY, ae = document.activeElement, keepId = ae && ae.id, keepVal = keepId && ae.value;
   $("#app").innerHTML = view(arg ? decodeURIComponent(arg) : undefined);
   window.scrollTo(0, keepScroll ? y : 0);
+  if (keepId) { const el = document.getElementById(keepId); if (el) { if (keepVal != null && el.value === "") el.value = keepVal; el.focus(); } } // 打字時收到新訊息不會被清掉
 }
 window.addEventListener("hashchange", () => { document.querySelectorAll(".mask,.full").forEach((e) => e.remove()); render(false); });
 render(false);
