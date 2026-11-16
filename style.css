@@ -762,3 +762,33 @@ details.plan{margin-top:14px;padding:4px 6px}details.plan summary{padding:10px 8
 #app:has(.wnav) .hdr .homebtn,#app:has(.wnav) .rhdr .homebtn,#app:has(.wnav) .ohero .homebtn,#app:has(.wnav) .dhero .homebtn{display:none}
 .msh{position:relative;display:flex;align-items:flex-end;min-height:56px;margin-bottom:10px}.msh img{position:absolute;right:-18px;top:-18px;width:120px;opacity:.9}.msh h3{margin:0!important}
 .grid9.sm{margin-top:0}.grid9.sm .tile{aspect-ratio:1/0.85}
+/* 每日行程：改用高解析水彩插畫 */
+.dayhero{background:linear-gradient(120deg,#fffaf0,#f6ecd8)}
+.dayhero img.dart{flex:1;min-width:0;height:100%;object-fit:contain;padding:6px 10px}
+.stop img{width:78px;height:52px;object-fit:contain;background:none;border-radius:0}
+/* 景點介紹／推薦指南：高解析水彩插畫 */
+.dhero.art{display:grid;place-items:center;background:radial-gradient(ellipse at 50% 60%,#fffaf0 0,#f6ecd8 70%,#efe2c6 100%)}
+.dhero.art>img{width:86%;max-height:78%;object-fit:contain;margin-top:calc(var(--safe-t) + 16px);filter:drop-shadow(0 6px 12px rgba(120,95,40,.12))}
+.gart{width:84px;height:70px;border-radius:12px;background:linear-gradient(160deg,#fffaf0,#f3e8d2);display:grid;place-items:center;flex:none;overflow:hidden}.gart img{width:94%;height:94%;object-fit:contain}
+/* 行程總覽：一行一個行程，不換行 */
+.sumx{display:flex;overflow:hidden;margin-bottom:12px;padding:0}
+.sx-l{background:linear-gradient(160deg,#7f9049,#5f7431);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;width:76px;flex:none;padding:10px 4px}
+.sx-l b{font-family:var(--script);font-size:34px;line-height:1}.sx-l span{font-family:var(--serif);font-size:11.5px;margin-top:4px;white-space:nowrap}
+.sx-l .cd{font-size:10px;padding:1px 6px}
+.sx-r{flex:1;min-width:0;padding:10px 12px 10px}
+.sx-h{display:flex;align-items:center;gap:6px}.sx-h h4{flex:1;min-width:0;margin:0;font-family:var(--serif);font-size:16px;color:var(--green-d);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sx-h img{width:54px;height:30px;object-fit:contain;flex:none}
+.sumx ul{margin:6px 0 0;padding:0;list-style:none}
+.sumx li{display:flex;gap:8px;font-size:13px;line-height:1.75;white-space:nowrap;min-width:0}
+.sumx li em{font-style:normal;font-weight:800;color:var(--green-d);width:40px;flex:none;font-variant-numeric:tabular-nums}
+.sumx li span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sumx li.pk em,.sumx li.pk span{color:#a33f55}
+.sx-more{font-size:12px;color:var(--muted);margin:1px 0 0 48px}
+.sumx .side{margin-top:6px}.sumx .chip.sm{max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+/* 其他地方的插畫 */
+.stopimg.art{object-fit:contain;background:linear-gradient(160deg,#fffaf0,#f3e8d2)}
+.covers.art{background:linear-gradient(160deg,#fffaf0,#f1e6cf)}.covers.art img{object-fit:contain;padding:6px}
+/* 服裝穿搭：原圖解析度有限，縮小顯示讓它看起來清楚 */
+.orow2>img{width:96px;height:110px;object-fit:cover;background:#fbf5ea;padding:0}
+.lbig{max-width:none}
+.icard img{height:190px;object-fit:cover;background:#fbf5ea;padding:0}

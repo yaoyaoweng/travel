@@ -258,7 +258,7 @@ const KW_IMG = [[/天燈/, "img/b_lantern.jpg"], [/瀑布|ATV|漂流/, "img/d2.j
 function artImg(s) { return stopImg(s) || (KW_IMG.find(([re]) => re.test(s.title + (s.sub || ""))) || [])[1]; }
 function stopImg(s) { const p = s.place && TRIP.places[s.place]; return p && p.img; }
 function stopRow(s, st, edit, d, i, n) {
-  const ty = T(s.type), img = stopImg(s), live = st[s.id];
+  const ty = T(s.type), img = stopArt(s), live = st[s.id];
   return `<div class="stop ${s.hi || s.type === "massage" ? "pink" : ""} ${live ? "live-" + live : ""}" style="--c:${ty.color};--b:${ty.bg}" ${edit ? "" : `onclick="openStop(${d},'${s.id}')"`}>
     <span class="dot"></span>
     <span class="tyi">${ic(ty.icon)}</span>
@@ -333,6 +333,7 @@ function remind() {
 }
 
 /* ---------- 每日行程 ---------- */
+const DAY_ART = { 1: "plane", 2: "waterfall", 3: "whitet", 4: "market", 5: "lanterns", 6: "taipei" };
 let EDIT = false;
 V.day = (n) => {
   const days = itin();
@@ -345,7 +346,7 @@ V.day = (n) => {
     <div class="daytabs">${days.map((x) => `<a class="daytab ${x.d === d.d ? "on" : ""} ${nowD === x.d ? "now" : ""} ${dleft(x.date) < 0 ? "past" : ""}" href="#day-${x.d}"><b>D${x.d}</b><span>${md(x.date)}</span></a>`).join("")}</div>
     <div class="dayhero card">
       <div class="dblk"><b>D${d.d}</b><span>${md(d.date)}（${wk(d.date)}）</span>${cdBadge(d.date)}</div>
-      ${d.photo ? `<img src="${d.photo}" alt="">` : ""}
+      <img class="dart" src="img/rt/${DAY_ART[d.d] || "whitet"}.webp" alt="">
     </div>
     <div class="dtitle">${ic(d.icon || "cal")}<h2>${esc(d.title)}</h2>${EDIT ? `<button class="mini" onclick="editDayTitle(${d.d})">${ic("edit")}</button>` : ""}</div>
     <div class="side">
@@ -443,7 +444,7 @@ function openStop(n, id) {
   const ty = T(s.type), p = s.place && TRIP.places[s.place], b = s.booking && bookings().find((x) => x.id === s.booking);
   sheet(`<div class="stophd" style="--c:${ty.color};--b:${ty.bg}"><span class="tyi">${ic(ty.icon)}</span><div><small>${ty.name}${s.t ? "・" + timeText(s) : ""}</small><h3>${esc(s.title)}</h3></div></div>
     ${s.sub ? `<p>${esc(s.sub)}</p>` : ""}
-    ${p && p.img ? `<img class="stopimg" src="${p.img}" alt="">` : ""}
+    ${stopArt(s) ? `<img class="stopimg art" src="${stopArt(s)}" alt="">` : ""}
     ${p && p.desc ? `<p class="small" style="line-height:1.7">${esc(p.desc)}</p>` : ""}
     ${b ? `<a class="chip ${bkDone(b.id) ? "g" : "w"}" href="#booking-${b.id}" style="margin:6px 0">${ic("ticket")}<span><small>${bkDone(b.id) ? "已確認" : "待確認"}</small>${esc(b.title)}</span></a>` : ""}
     <div class="acts3">
@@ -526,12 +527,13 @@ function showLegs(n) {
 }
 
 /* ---------- 景點／店家介紹 ---------- */
+function placeArtWC(id) { const A = TRIP.routeArt, p = TRIP.places[id] || {}; return `img/rt/${A.place[id] || (A.words.find(([re]) => re.test(p.name || "")) || [])[1] || A.type[p.type] || "gate"}.webp`; }
 V.place = (id) => {
   const p = TRIP.places[id]; if (!p) return V.home();
   const fav = LS.get("fav", []).includes(id), ty = T(p.type), uses = placeUses(id);
   const facts = [["clock", "開放時間", p.hours], ["ticket", "門票", p.fee], ["clock", "建議停留", p.stay], ["coins", "價位", p.price], ["pin", "區域", p.area]].filter((f) => f[2]).slice(0, 3);
   return `<div class="page">
-    <div class="dhero ${p.img ? "" : "noimg"}" style="${p.img ? `background-image:url(${p.img})` : `--c:${ty.color};--b:${ty.bg}`}">${p.img ? "" : ic(ty.icon)}
+    <div class="dhero art"><img src="${placeArtWC(id)}" alt="">
       <button class="back" onclick="goBack()">${ic("back")}</button><a class="homebtn" href="#home">${ic("home")}</a></div>
     <div class="card dcard"><span class="pill" style="background:${ty.bg};color:${ty.color}">${ic(ty.icon)} ${ty.name}</span>
       <h2>${esc(p.name)}${p.en && !/^\d/.test(p.en) ? `<i>${esc(p.en)}</i>` : ""}</h2>${p.custom ? `<span class="pill gold">自己加的${p.by ? "・" + esc(p.by) : ""}</span>` : ""}
@@ -551,16 +553,18 @@ function toggleFav(id) { const f = LS.get("fav", []); const i = f.indexOf(id); i
 /* ---------- 行程總覽（海報風） ---------- */
 V.summary = () => {
   const days = itin();
+  const short = (t) => t.replace(/（.*?）/g, "").replace(/\s+(Wat|Baan) .*$/, "");
   return `<div class="page">${hdr("route", `${days.length} 天行程總覽`, "Trip Summary")}
   ${days.map((d) => {
     const hotel = hotelFor(d.date), ms = d.stops.filter((s) => s.type === "massage");
-    return `<a class="card sumrow" href="#day-${d.d}">
-      <div class="dblk"><b>D${d.d}</b><span>${md(d.date)}（${wk(d.date)}）</span>${cdBadge(d.date)}</div>
-      <div class="sumb"><h4>${ic(d.icon || "cal")} ${esc(d.title)}</h4>
-        <ul>${d.stops.slice(0, 4).map((s) => `<li class="${s.type === "massage" || s.hi ? "pk" : ""}">${s.t ? `<b>${timeText(s)}</b> ` : ""}${esc(s.title)}</li>`).join("")}${d.stops.length > 4 ? `<li class="more">還有 ${d.stops.length - 4} 項…</li>` : ""}</ul>
+    const shown = d.stops.slice(0, 4);
+    return `<a class="card sumx" href="#day-${d.d}">
+      <div class="sx-l"><b>D${d.d}</b><span>${md(d.date)}（${wk(d.date)}）</span>${cdBadge(d.date)}</div>
+      <div class="sx-r"><div class="sx-h"><h4>${esc(d.short || d.title)}</h4><img src="img/rt/${DAY_ART[d.d] || "whitet"}.webp" alt=""></div>
+        <ul>${shown.map((s) => `<li class="${s.type === "massage" || s.hi ? "pk" : ""}"><em>${s.t ? s.t : "・"}</em><span>${esc(short(s.title))}</span></li>`).join("")}</ul>
+        ${d.stops.length > 4 ? `<div class="sx-more">還有 ${d.stops.length - 4} 項 ›</div>` : ""}
         <div class="side">${hotel ? `<span class="chip y sm">${ic("bed")}${esc(hotel.title)}</span>` : ""}${ms.length ? `<span class="chip p sm">${ic("spa")}按摩 ${ms.length}</span>` : ""}</div>
       </div>
-      ${d.photo ? `<img src="${d.photo}" alt="">` : ""}
     </a>`;
   }).join("")}
   <div class="see2">See you Chiang Mai ♡</div></div>`;
@@ -705,7 +709,7 @@ V.guide = (tab) => {
   return `<div class="page">${hdr("food", "推薦指南", "Travel Guide")}
     <div class="tabs">${TRIP.guideTabs.map(([k, z, i]) => `<a class="tab ${k === tab ? "on" : ""}" href="#guide-${k}">${ic(i)} ${z}</a>`).join("")}</div>
     ${list.map(([id, p]) => { const ty = T(p.type), uses = placeUses(id); return `<div class="card rowc" onclick="location.hash='#place-${id}'">
-      ${p.img ? `<img class="thumb" src="${p.img}" style="width:84px;height:70px" alt="">` : `<span class="gico" style="--c:${ty.color};--b:${ty.bg}">${ic(ty.icon)}</span>`}
+      <span class="gart"><img src="${placeArtWC(id)}" alt=""></span>
       <div class="bd"><h4>${esc(p.name)}${p.custom ? `<span class="pill gold" style="font-size:10.5px">自己加的</span>` : ""}</h4><p>${esc(p.zh || "")}${p.zh && p.area ? "・" : ""}${esc(p.area || "")}</p>
       ${p.rating || p.price ? `<p>${p.rating ? `<span class="rating">${ic("star")} ${p.rating}</span> ・ ` : ""}${p.price || ""}</p>` : ""}
       ${uses.length ? `<span class="pill">${ic("cal")} 已排 ${uses.map((u) => "D" + u.d + (u.t ? " " + u.t : "")).join("、")}</span>` : `<button class="pill add" onclick="event.stopPropagation();addPlaceToDay('${id}')">${ic("plus")} 加入行程</button>`}</div>
@@ -746,6 +750,8 @@ async function delPlace(id) {
 }
 V.food = V.guide;
 
+const BK_ART_WC = { flight: "plane", migoo: "migoo", golden: "hotel2", atv: "waterfall", car: "suitcase", spa: "spaoil", lantern: "lanterns", transfer: "airport" };
+function bkArt(b) { return `img/rt/${BK_ART_WC[b.id] || { stay: "hotel2", transport: "suitcase", activity: "lanterns", spa: "towels", food: "thaifood" }[b.type] || "suitcase"}.webp`; }
 /* ---------- 預訂票券（可新增／修改／刪除，連動行程與出發準備） ---------- */
 V.booking = (sel) => {
   const all = bookings(), tab = TRIP.bookingTabs.some(([k]) => k === sel) ? sel : "all", hi = tab === sel ? null : sel;
@@ -756,7 +762,7 @@ V.booking = (sel) => {
   return `<div class="page">${hdr("ticket", "預訂票券", "My Booking")}
     ${todo ? `<div class="card warn">${ic("info")} 還有 ${todo} 項待確認，點狀態可以切換</div>` : ""}
     <div class="tabs">${TRIP.bookingTabs.map(([k, z]) => `<a class="tab ${k === tab ? "on" : ""}" href="#booking-${k}">${z}</a>`).join("")}</div>
-    ${list.map((b) => { const dd = dayFor(b.id), dl = dd ? dleft(dd.date) : null; return `<div class="card rowc ${hi === b.id ? "hl" : ""}" id="bk-${b.id}" onclick="editBooking('${b.id}')"><img class="thumb" src="${b.img}" style="width:80px;height:62px" alt="">
+    ${list.map((b) => { const dd = dayFor(b.id), dl = dd ? dleft(dd.date) : null; return `<div class="card rowc ${hi === b.id ? "hl" : ""}" id="bk-${b.id}" onclick="editBooking('${b.id}')"><span class="gart" style="width:80px;height:66px"><img src="${bkArt(b)}" alt=""></span>
       <div class="bd"><h4>${esc(b.title)}</h4><p>${b.lines.map(esc).join("<br>")}</p>
         <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap"><button class="pill ${bkDone(b.id) ? "" : "w"}" onclick="event.stopPropagation();toggleCk('bk_${b.id}')">${ic(bkDone(b.id) ? "ok" : "info")} ${bkDone(b.id) ? "已確認" : "待確認"}</button>
         ${dd ? `<a class="pill gold" href="#day-${dd.d}" onclick="event.stopPropagation()">${ic("cal")} D${dd.d}${dl > 0 ? `・${dl} 天後` : dl === 0 ? "・今天" : ""}</a>` : `<span class="pill" style="background:#eee;color:#888">未排進行程</span>`}</div></div>
@@ -928,7 +934,7 @@ V.album = () => {
   const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
   return `<div class="page">${hdr("album", "旅行相冊", "Shared Album")}
     <div class="card albhero">
-      <div class="covers">${TRIP.albumCover.map((s) => `<img src="${s}" alt="">`).join("")}</div>
+      <div class="covers art">${["whitet", "lanterns", "waterfall"].map((k) => `<img src="img/rt/${k}.webp" alt="">`).join("")}</div>
       ${a.url ? `<div class="albbd"><small>我們的共享相簿</small><h3>${esc(a.name || "清邁閨蜜旅行")}</h3><p class="small muted">${esc(host(a.url))}・兩個人都可以上傳</p>
         <div class="btnrow"><a class="btn" href="${esc(a.url)}" target="_blank" rel="noopener">${ic("album")} 開啟相簿</a><button class="btn ghost" onclick="copyAlbum()">${ic("copy")} 複製連結</button></div>
         <button class="small muted" style="margin-top:10px;text-decoration:underline" onclick="setAlbum()">更換相簿連結</button></div>`

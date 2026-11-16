@@ -190,17 +190,17 @@ const TRIP = {
 
   // 服裝穿搭：每日造型（palette = 穿搭配色）
   outfits: [
-    { d: 1, title: "抵達日", en: "Arrival Day Look", look: "舒適短袖＋薄外套", icon: "plane", img: "img/look1.jpg",
+    { d: 1, title: "抵達日", en: "Arrival Day Look", look: "舒適短袖＋薄外套", icon: "plane", img: "img/look1.jpg", big: "img/look1_big.jpg",
       palette: ["#f6efe2","#e8cfa8","#c99a64","#d9b98c","#a7b48a"], photo: "飯店入住隨手拍，碎花洋裝很上鏡", tip: "機上冷氣強，薄外套隨身；好穿脫的鞋過安檢比較快", acc: "草編包、薄外套、頸枕", mood: "Cozy / Easy" },
-    { d: 2, title: "ATV＋瀑布", en: "Adventure Day Look", look: "運動套裝＋止滑鞋", icon: "mountain", img: "img/look2.jpg",
+    { d: 2, title: "ATV＋瀑布", en: "Adventure Day Look", look: "運動套裝＋止滑鞋", icon: "mountain", img: "img/look2.jpg", big: "img/look2_big.jpg",
       palette: ["#7d8f55","#f4f1ea","#5a5a55","#cfc6b4","#9fb27a"], photo: "瀑布前穿亮色上衣最好拍", tip: "漂流會全濕：穿快乾衣、防滑鞋，帶替換衣物和塑膠袋", acc: "棒球帽、防水袋、毛巾", mood: "Sporty / Fresh" },
-    { d: 3, title: "清萊三廟", en: "Temple Day Look", look: "有袖上衣＋長裙", icon: "temple", img: "img/look3.jpg",
+    { d: 3, title: "清萊三廟", en: "Temple Day Look", look: "有袖上衣＋長裙", icon: "temple", img: "img/look3.jpg", big: "img/look3_big.jpg",
       palette: ["#f8ede0","#efc2b9","#e59a93","#e8d3b0","#d2ad5c"], photo: "白廟前穿淺粉、奶油白最搭", tip: "寺廟要遮肩、不露膝；坐車時間長，穿好走的鞋", acc: "草編包、珍珠耳環、披肩", mood: "Sweet / Graceful" },
-    { d: 4, title: "尼曼區＋SPA", en: "Nimman & Spa Look", look: "洋裝＋好走涼鞋", icon: "spa", img: "img/look4.jpg",
+    { d: 4, title: "尼曼區＋SPA", en: "Nimman & Spa Look", look: "洋裝＋好走涼鞋", icon: "spa", img: "img/look4.jpg", big: "img/look4_big.jpg",
       palette: ["#fbf6ec","#efe2c8","#d8b98a","#b9c79a","#d9ad55"], photo: "One Nimman 紅磚牆配白洋裝很有歐洲感", tip: "逛街走很多路穿平底涼鞋；SPA 前穿好脫的衣服", acc: "珍珠耳環、小包", mood: "Chic / Relaxed" },
     { d: 5, title: "天燈節", en: "Sky Lantern Festival Look", look: "淺色長裙＋小包", icon: "lantern", img: "img/look5.jpg", big: "img/look5_big.jpg",
       palette: ["#f4efe4","#e3c49c","#b9c79a","#efb7b3","#d9ad55"], photo: "淺色、柔和、飄逸感", tip: "避免過長裙擺，方便行走與放天燈", acc: "小包、耳環、薄披肩", mood: "Romantic / Elegant", night: true },
-    { d: 6, title: "返程日", en: "Going Home Look", look: "舒適休閒穿搭", icon: "plane", img: "img/look6.jpg",
+    { d: 6, title: "返程日", en: "Going Home Look", look: "舒適休閒穿搭", icon: "plane", img: "img/look6.jpg", big: "img/look6_big.jpg",
       palette: ["#f7f5ef","#7d8f55","#cfc6b4","#9aa3ad","#5f6b3c"], photo: "機場最後一張合照留念", tip: "清晨 05:00 出發，前一晚先把衣服準備好", acc: "棒球帽、外套、頸枕", mood: "Comfy / Casual" }
   ],
   // 打包清單：[id, 名稱, 數量, 預設已準備]
